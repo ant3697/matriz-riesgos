@@ -1,0 +1,3071 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRL y Proteccion Ambiental</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --bg-panel: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-tertiary: #9ca3af;
+            --border-color: #4b5563;
+            --button-red: #dc2626;
+            --button-red-hover: #b91c1c;
+            --link-color: #60a5fa;
+            --tab-active-border: #3b82f6;
+        }
+
+        body.light {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --bg-panel: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --text-tertiary: #6b7280;
+            --border-color: #e5e7eb;
+            --button-red: #ef4444;
+            --button-red-hover: #dc2626;
+            --link-color: #3b82f6;
+            --tab-active-border: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .riesgo-trivial { background-color: #ddee99; color: #3f6212; }
+        .riesgo-tolerable { background-color: #ffee77; color: #854d0e; }
+        .riesgo-moderado { background-color: #ffc14d; color: #9a3412; }
+        .riesgo-alto { background-color: #ff8a65; color: #991b1b; }
+        .riesgo-muy-alto { background-color: #e53935; color: white; }
+        
+        .interactive-matrix-grid {
+            display: grid;
+            grid-template-columns: auto auto repeat(3, 1fr);
+            grid-template-rows: auto auto repeat(3, 1fr);
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .matrix-cell {
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 80px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            position: relative;
+            transition: filter 0.2s;
+        }
+        .matrix-header {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .prob-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .training-active .interactive-matrix-grid [data-prob] {
+            cursor: pointer;
+        }
+        .training-active .interactive-matrix-grid [data-prob]:hover {
+            filter: brightness(1.2);
+        }
+        .initial-risk-marker, .current-risk-marker {
+            position: absolute;
+            width: 85%;
+            height: 85%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            transition: all 0.5s ease-in-out;
+            font-size: 0.75rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+        .initial-risk-marker { background-color: rgba(239, 68, 68, 0.85); border: 3px solid #f8fafc; z-index: 10; }
+        .current-risk-marker { background-color: rgba(34, 197, 94, 0.85); border: 3px solid #f8fafc; z-index: 10; }
+        
+        #risk-path-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5; overflow: visible;
+        }
+
+        .medida-probabilidad::before { content: '🎯'; margin-right: 8px; }
+        .medida-severidad::before { content: '🛡️'; margin-right: 8px; }
+
+        select, input[type="text"], input[type="url"], input[type="number"], textarea {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+            border-radius: 0.375rem;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+        }
+        select:focus, input[type="text"]:focus, input[type="url"]:focus, input[type="number"]:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+        input[type="checkbox"] {
+            background-color: var(--bg-panel);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+        input[type="checkbox"]:checked {
+             background-color: #3b82f6;
+        }
+        .form-checkbox {
+            border-radius: 0.25rem;
+        }
+        #theme-toggle:focus {
+            outline: none;
+            box-shadow: none;
+        }
+        .feedback-icon {
+            font-size: 1.2em;
+            line-height: 1;
+        }
+        .feedback-correct { color: #22c55e; }
+        .feedback-incorrect { color: #ef4444; }
+
+        .toggle-label {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-tertiary);
+        }
+        .toggle-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            width: 44px;
+            height: 24px;
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background-color: var(--text-tertiary);
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        .toggle-input:checked + .toggle-slider {
+            background-color: #3b82f6;
+        }
+        .toggle-input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+            background-color: white;
+        }
+        
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--bg-panel);
+        }
+        .drag-handle {
+            cursor: move;
+        }
+
+        .tab {
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+            border-bottom: 0;
+        }
+        .tab:not(.active) {
+            color: var(--text-tertiary);
+        }
+        .tab:not(.active):hover {
+            color: var(--text-secondary);
+            background-color: var(--bg-panel);
+             border-top-left-radius: 0.375rem;
+            border-top-right-radius: 0.375rem;
+        }
+        .tab.active {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+            border-top-left-radius: 0.375rem;
+            border-top-right-radius: 0.375rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="bg-gray-900/50 backdrop-blur-sm shadow-lg sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 class="text-2xl font-bold leading-tight text-white">
+                PRL y Proteccion Ambiental
+            </h1>
+            <div class="flex items-center gap-4">
+                <label for="training-mode-toggle" class="toggle-label text-sm">
+                    <span class="mr-3 font-medium">Modo Entrenamiento</span>
+                    <input type="checkbox" id="training-mode-toggle" class="toggle-input">
+                    <span class="toggle-slider"></span>
+                </label>
+
+                <div class="h-6 w-px bg-gray-600"></div>
+
+                <button id="create-scenario-btn" title="Crear Nuevo Escenario" class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </button>
+                <button id="import-btn" title="Importar Base de Datos (.json)" class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                </button>
+                <button id="export-db-btn" title="Exportar Base de Datos (.json)" class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                </button>
+                <button id="theme-toggle" class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+                    <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        
+        <div id="main-content-view">
+            <div class="flex flex-col rounded-xl shadow-2xl border" style="background-color: var(--bg-secondary); border-color: var(--border-color); max-height: calc(100vh - 10rem);">
+                
+                <div class="p-6 sm:p-8 pb-0 border-b" style="border-color: var(--border-color);">
+                    <nav id="tabs-container" class="-mb-px flex space-x-2" aria-label="Tabs">
+                        <button data-tab="matrix" type="button" class="tab active whitespace-nowrap py-3 px-4 font-medium text-sm">
+                            PRL
+                        </button>
+                        <button data-tab="documents" type="button" class="tab whitespace-nowrap py-3 px-4 font-medium text-sm">
+                            Documentos
+                        </button>
+                        <button data-tab="environmental" type="button" class="tab whitespace-nowrap py-3 px-4 font-medium text-sm">
+                            Protección Ambiental
+                        </button>
+                    </nav>
+                </div>
+                
+                <div class="overflow-y-auto">
+                    <div class="p-6 sm:p-8">
+                        <div id="content-matrix">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                <div class="flex flex-col gap-6">
+                                    <div>
+                                        <label for="scenario-select" class="block text-sm font-medium mb-2" style="color: var(--text-tertiary);">Seleccione un escenario de accidente:</label>
+                                        <div class="flex items-center gap-2">
+                                            <button id="nav-first-btn" title="Primer Escenario" class="p-2.5 rounded-md shadow-sm transition-opacity duration-200" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-tertiary);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 18-10-6 10-6v12z"/><path d="M5 6v12"/></svg></button>
+                                            <button id="nav-prev-btn" title="Escenario Anterior" class="p-2.5 rounded-md shadow-sm transition-opacity duration-200" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-tertiary);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+                                            <select id="scenario-select" class="block w-full pl-3 pr-10 py-2.5 text-base rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                                            <button id="nav-next-btn" title="Siguiente Escenario" class="p-2.5 rounded-md shadow-sm transition-opacity duration-200" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-tertiary);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                                            <button id="nav-last-btn" title="Último Escenario" class="p-2.5 rounded-md shadow-sm transition-opacity duration-200" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-tertiary);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 18 10-6-10-6v12z"/><path d="M19 6v12"/></svg></button>
+                                            <button id="random-scenario-btn" title="Seleccionar escenario aleatorio" class="flex-shrink-0 p-2.5 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[--bg-secondary] focus:ring-blue-500 transition-colors duration-200" style="background-color: var(--bg-panel); border: 1px solid var(--border-color);" onmouseover="this.style.backgroundColor = 'var(--border-color)'" onmouseout="this.style.backgroundColor = 'var(--bg-panel)'">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.5 7.5 2.5 2.5"/><path d="m17.5 12.5 2.5 2.5"/><path d="m17.5 17.5 2.5 2.5"/><path d="m12.5 17.5 2.5 2.5"/><path d="M6 14h.01"/><path d="M10 14h.01"/><path d="M6 18h.01"/><path d="M10 18h.01"/><rect width="12" height="12" x="10" y="2" rx="2" ry="2"/><path d="M14 6h.01"/><path d="M18 6h.01"/><path d="M14 10h.01"/><path d="M18 10h.01"/></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="interactive-matrix-container" class="relative">
+                                        <h3 class="text-lg font-semibold text-center mb-4" style="color: var(--text-primary);">Matriz de Riesgo</h3>
+                                        <div class="interactive-matrix-grid">
+                                            <div class="matrix-cell matrix-header col-span-2 row-span-2"></div>
+                                            <div class="matrix-cell matrix-header col-span-3" style="border-bottom: 1px solid var(--border-color);">SEVERIDAD</div>
+                                            <div class="matrix-cell matrix-header">Baja</div>
+                                            <div class="matrix-cell matrix-header">Media</div>
+                                            <div class="matrix-cell matrix-header">Alta</div>
+                                            <div class="matrix-cell matrix-header prob-header row-span-3" style="border-right: 1px solid var(--border-color);">PROBABILIDAD</div>
+                                            <div class="matrix-cell matrix-header">Alta</div>
+                                            <div class="matrix-cell riesgo-moderado" data-prob="Alta" data-sev="Baja">Moderado</div>
+                                            <div class="matrix-cell riesgo-alto" data-prob="Alta" data-sev="Media">Alto</div>
+                                            <div class="matrix-cell riesgo-muy-alto" data-prob="Alta" data-sev="Alta">Muy Alto</div>
+                                            <div class="matrix-cell matrix-header">Media</div>
+                                            <div class="matrix-cell riesgo-tolerable" data-prob="Media" data-sev="Baja">Tolerable</div>
+                                            <div class="matrix-cell riesgo-moderado" data-prob="Media" data-sev="Media">Moderado</div>
+                                            <div class="matrix-cell riesgo-alto" data-prob="Media" data-sev="Alta">Alto</div>
+                                            <div class="matrix-cell matrix-header">Baja</div>
+                                            <div class="matrix-cell riesgo-trivial" data-prob="Baja" data-sev="Baja">Trivial</div>
+                                            <div class="matrix-cell riesgo-tolerable" data-prob="Baja" data-sev="Media">Tolerable</div>
+                                            <div class="matrix-cell riesgo-moderado" data-prob="Baja" data-sev="Alta">Moderado</div>
+                                        </div>
+                                        <svg id="risk-path-svg"></svg>
+                                    </div>
+                                    <div id="scenario-links" class="flex items-center justify-center gap-4 mt-4">
+                                        <a id="image-link" href="#" target="_blank" class="hidden inline-flex items-center gap-2 text-sm font-medium py-1 px-3 rounded-full transition-colors duration-200 hover:bg-blue-500/20" style="color: var(--link-color); background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                            <span>Señal</span>
+                                        </a>
+                                        <a id="reference-link" href="#" target="_blank" class="hidden inline-flex items-center gap-2 text-sm font-medium py-1 px-3 rounded-full transition-colors duration-200 hover:bg-blue-500/20" style="color: var(--link-color); background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                                            <span>Video/Documento</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div id="scenario-details" class="p-6 rounded-lg min-h-[400px] flex flex-col" style="background-color: var(--bg-primary); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s;">
+                                    
+                                    <div id="scenario-display-view" class="flex-grow flex flex-col">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h3 id="scenario-title" class="text-lg font-bold" style="color: var(--text-primary);">Seleccione un escenario</h3>
+                                            <button id="edit-scenario-btn" title="Editar Escenario" class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200 hidden">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                            </button>
+                                        </div>
+                                        <p id="scenario-description" class="mb-4 flex-grow" style="color: var(--text-tertiary);"></p>
+                                        <div id="measures-container" class="mb-4"></div>
+                                        <div id="feedback-container" class="text-center my-2 text-sm font-medium"></div>
+                                        <div class="flex items-center gap-2">
+                                            <button id="solve-btn" class="w-full text-white font-bold py-2.5 px-4 rounded-lg shadow-md transition duration-300" style="background-color: var(--button-red);">Aplicar Medidas Óptimas</button>
+                                            <button id="toggle-all-btn" class="w-auto flex-shrink-0 text-white font-bold py-2.5 px-4 rounded-lg shadow-md transition duration-300" style="background-color: #4b5563;" title="Marcar/Desmarcar Todo">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                                            </button>
+                                        </div>
+                                        <div class="mt-4 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4" style="border-top: 1px solid var(--border-color);">
+                                            <div class="text-center flex flex-col">
+                                                <p class="text-sm font-medium" style="color: var(--text-tertiary);">Riesgo Inicial</p>
+                                                <span id="initial-risk-value" class="text-xl font-bold mb-2" style="color: var(--text-primary);">--</span>
+                                                <div id="initial-risk-details" class="mt-1 text-xs text-left p-3 rounded-lg flex-grow" style="background-color: var(--bg-primary); color: var(--text-tertiary); border: 1px solid var(--border-color);">
+                                                    <p class="font-semibold mb-1" style="color: var(--text-secondary);">Acción requerida:</p>
+                                                    <p id="initial-risk-action">--</p>
+                                                    <p class="font-semibold mt-2 mb-1" style="color: var(--text-secondary);">Plazo:</p>
+                                                    <p id="initial-risk-period">--</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-center flex flex-col">
+                                                <p class="text-sm font-medium" style="color: var(--text-tertiary);">Riesgo Actual</p>
+                                                <span id="current-risk-value" class="text-xl font-bold mb-2" style="color: var(--text-primary);">--</span>
+                                                <div id="current-risk-details" class="mt-1 text-xs text-left p-3 rounded-lg flex-grow" style="background-color: var(--bg-primary); color: var(--text-tertiary); border: 1px solid var(--border-color);">
+                                                    <p class="font-semibold mb-1" style="color: var(--text-secondary);">Acción requerida:</p>
+                                                    <p id="current-risk-action">--</p>
+                                                    <p class="font-semibold mt-2 mb-1" style="color: var(--text-secondary);">Plazo:</p>
+                                                    <p id="current-risk-period">--</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+        
+                                    <div id="scenario-edit-view" class="hidden flex-grow flex flex-col">
+                                        <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">Editando Escenario</h3>
+                                        <div class="space-y-4 flex-grow">
+                                            <div>
+                                                <label for="edit-scenario-title" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Título</label>
+                                                <input type="text" id="edit-scenario-title">
+                                            </div>
+                                            <div>
+                                                <label for="edit-scenario-description" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Descripción</label>
+                                                <textarea id="edit-scenario-description" rows="5"></textarea>
+                                            </div>
+                                            <div>
+                                                <label for="edit-scenario-ref-url" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">URL Documento de Referencia/Videos, etc.</label>
+                                                <input type="url" id="edit-scenario-ref-url" placeholder="https://ejemplo.com/documento">
+                                            </div>
+                                            <div>
+                                                <label for="edit-scenario-img-url" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">URL Imagen de Señal</label>
+                                                <input type="url" id="edit-scenario-img-url" placeholder="https://ejemplo.com/imagen.png">
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
+                                            <button id="save-scenario-btn" class="w-full text-white font-bold py-2.5 px-4 rounded-lg shadow-md transition duration-300 bg-blue-600 hover:bg-blue-700">Guardar Cambios</button>
+                                            <button id="cancel-edit-btn" class="w-full font-bold py-2.5 px-4 rounded-lg shadow-md transition duration-300" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-secondary);">Cancelar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div id="content-documents" class="hidden">
+                             <div class="sticky top-0 z-10 py-4 border-b" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+                                <div class="flex justify-end">
+                                    <button id="add-document-btn" class="text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition duration-300 bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        Añadir Hipervínculo
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="pt-4">
+                                <div id="add-document-form" class="hidden p-4 rounded-lg mb-4" style="background-color: var(--bg-primary);">
+                                    <div class="space-y-3">
+                                         <div>
+                                            <label for="document-title-input" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Título</label>
+                                            <input type="text" id="document-title-input" placeholder="Ej: Manual de seguridad PDF">
+                                        </div>
+                                        <div>
+                                            <label for="document-url-input" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">URL</label>
+                                            <input type="url" id="document-url-input" placeholder="https://ejemplo.com/documento.pdf">
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-4">
+                                        <button id="save-document-btn" class="text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition duration-300 bg-green-600 hover:bg-green-700 text-white">Guardar</button>
+                                        <button id="cancel-document-btn" class="text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition duration-300" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-secondary);">Cancelar</button>
+                                    </div>
+                                </div>
+                                <div id="documents-gallery" class="space-y-4">
+                                    <!-- Document items will be injected here by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div id="content-environmental" class="hidden">
+                             <p class="text-center py-8" style="color: var(--text-tertiary);">Contenido de Protección Ambiental irá aquí.</p>
+                        </div>
+        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scenario-creation-view" class="hidden bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-700 mt-8" style="background-color: var(--bg-secondary); border-color: var(--border-color); transition: background-color 0.3s, border-color 0.3s;">
+            <h3 class="text-xl font-bold mb-6" style="color: var(--text-primary);">Crear Nuevo Escenario de Riesgo</h3>
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-lg font-semibold mb-3" style="color: var(--text-secondary);">Información General</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-group-name" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Nombre del Grupo</label>
+                            <input type="text" id="create-group-name" placeholder="Ej: Trabajos en Altura">
+                        </div>
+                        <div>
+                            <label for="create-scenario-name" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Nombre del Escenario</label>
+                            <input type="text" id="create-scenario-name" placeholder="Ej: Caída desde andamio">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label for="create-scenario-desc" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Descripción</label>
+                        <textarea id="create-scenario-desc" rows="4" placeholder="Descripción detallada del escenario..."></textarea>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-3" style="color: var(--text-secondary);">Riesgo Inicial</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-initial-prob" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Probabilidad</label>
+                            <select id="create-initial-prob">
+                                <option value="0">Baja</option>
+                                <option value="1">Media</option>
+                                <option value="2">Alta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="create-initial-sev" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Severidad</label>
+                            <select id="create-initial-sev">
+                                <option value="0">Baja</option>
+                                <option value="1">Media</option>
+                                <option value="2">Alta</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-3" style="color: var(--text-secondary);">Recursos Adicionales (Opcional)</h4>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-ref-url" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">URL Documento/Video</label>
+                            <input type="url" id="create-ref-url" placeholder="https://ejemplo.com/documento">
+                        </div>
+                        <div>
+                            <label for="create-img-url" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">URL Imagen Señal</label>
+                            <input type="url" id="create-img-url" placeholder="https://ejemplo.com/imagen.png">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                         <h4 class="text-lg font-semibold" style="color: var(--text-secondary);">Medidas y Distractores</h4>
+                         <button id="add-measure-btn" class="text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition duration-300 bg-blue-600 hover:bg-blue-700 text-white">Añadir Medida</button>
+                    </div>
+                    <div id="creation-measures-list" class="space-y-3">
+                        <!-- Dynamic measure rows will be added here -->
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 mt-8 pt-6" style="border-top: 1px solid var(--border-color);">
+                    <button id="save-new-scenario-btn" class="w-full text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 bg-green-600 hover:bg-green-700">Guardar Escenario</button>
+                    <button id="cancel-creation-btn" class="w-full font-bold py-3 px-4 rounded-lg shadow-md transition duration-300" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-secondary);">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Edit Document Modal -->
+    <div id="edit-document-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="p-6 rounded-lg w-full max-w-md" style="background-color: var(--bg-secondary);">
+            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">Editar Hipervínculo</h3>
+            <div class="space-y-3">
+                <div>
+                    <label for="edit-document-title-input" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">Título</label>
+                    <input type="text" id="edit-document-title-input">
+                </div>
+                <div>
+                    <label for="edit-document-url-input" class="block text-sm font-medium mb-1" style="color: var(--text-tertiary);">URL</label>
+                    <input type="url" id="edit-document-url-input">
+                </div>
+            </div>
+            <div class="flex items-center gap-2 mt-4">
+                <button id="save-edit-document-btn" class="text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition duration-300 bg-green-600 hover:bg-green-700 text-white">Guardar</button>
+                <button id="cancel-edit-document-btn" class="text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition duration-300" style="background-color: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-secondary);">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <input type="file" id="import-file-input" class="hidden" accept=".json">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Theme switcher logic
+            const themeToggle = document.getElementById('theme-toggle');
+            const sunIcon = document.getElementById('theme-icon-sun');
+            const moonIcon = document.getElementById('theme-icon-moon');
+
+            const applyTheme = (theme) => {
+                if (theme === 'light') {
+                    document.body.classList.add('light');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    document.body.classList.remove('light');
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+            };
+
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.body.classList.contains('light') ? 'light' : 'dark';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            applyTheme(savedTheme);
+
+
+            // Application logic
+            let isTrainingMode = false;
+            const trainingModeToggle = document.getElementById('training-mode-toggle');
+            
+            const riskMatrix = { 'Baja': { 'Baja': 'Trivial', 'Media': 'Tolerable', 'Alta': 'Moderado' }, 'Media': { 'Baja': 'Tolerable', 'Media': 'Moderado', 'Alta': 'Alto' }, 'Alta': { 'Baja': 'Moderado', 'Media': 'Alto', 'Alta': 'Muy alto' }};
+            const probLevelMap = ['Baja', 'Media', 'Alta'];
+            const sevLevelMap = ['Baja', 'Media', 'Alta'];
+
+            const riskLevelDetails = {
+                "Trivial": { action: "No se requiere acción específica.", period: "N/A" },
+                "Tolerable": { action: "No se necesita la acción preventiva. Sin embargo, se deben considerar soluciones más rentables o mejoras que no supongan una carga económica importante. Se requieren comprobaciones periódicas para asegurar que se mantiene la eficacia de las medidas de control.", period: "Hasta 2 años" },
+                "Moderado": { action: "Se deben hacer esfuerzos para reducir el riesgo, determinando las inversiones precisas. Las medidas para reducir el riesgo deben implantarse en un periodo determinado.Cuando el riesgo moderado está asociado con consecuencias extremadamente dañinas, se precisará una acción posterior para establecer, con más precisión, la probabilidad de daño como base para determinar la necesidad de mejora de las medidas de control.", period: "Hasta 1 año" },
+                "Alto": { action: "No debe comenzarse el trabajo hasta que se haya reducido el riesgo. Puede que se precisen recursos considerables para controlar el riesgo. Cuando el riesgo corresponda a un trabajo que se está realizando, debe remediarse el problema en un tiempo inferior al de los riesgos moderados.", period: "Hasta 6 meses, pero mientras medidas de control" },
+                "Muy alto": { action: "No debe comenzarse ni continuar el trabajo hasta que se reduzca el riesgo. Si no es posible, incluso con recursos ilimitados, debe prohibirse el trabajo.", period: "Inmediato" }
+            };
+
+            let scenarioGroups = [];
+            let allScenarios = [];
+            let customDocuments = [];
+            let tabOrder = ['matrix', 'documents', 'environmental'];
+            let currentlyEditingIndex = -1;
+
+            const scenarioSelect = document.getElementById('scenario-select');
+            
+            const mainContentView = document.getElementById('main-content-view');
+            const scenarioCreationView = document.getElementById('scenario-creation-view');
+            
+            const createScenarioBtn = document.getElementById('create-scenario-btn');
+            const cancelCreationBtn = document.getElementById('cancel-creation-btn');
+            const saveNewScenarioBtn = document.getElementById('save-new-scenario-btn');
+            const addMeasureBtn = document.getElementById('add-measure-btn');
+            const creationMeasuresList = document.getElementById('creation-measures-list');
+
+            const editScenarioBtn = document.getElementById('edit-scenario-btn');
+            const saveScenarioBtn = document.getElementById('save-scenario-btn');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const scenarioDisplayView = document.getElementById('scenario-display-view');
+            const scenarioEditView = document.getElementById('scenario-edit-view');
+            const editTitleInput = document.getElementById('edit-scenario-title');
+            const editDescTextarea = document.getElementById('edit-scenario-description');
+            const editRefUrlInput = document.getElementById('edit-scenario-ref-url');
+            const editImgUrlInput = document.getElementById('edit-scenario-img-url');
+            
+            const tabsContainer = document.getElementById('tabs-container');
+            const contentMatrix = document.getElementById('content-matrix');
+            const contentDocuments = document.getElementById('content-documents');
+            const contentEnvironmental = document.getElementById('content-environmental');
+            
+            const addDocumentBtn = document.getElementById('add-document-btn');
+            const addDocumentForm = document.getElementById('add-document-form');
+            const saveDocumentBtn = document.getElementById('save-document-btn');
+            const cancelDocumentBtn = document.getElementById('cancel-document-btn');
+            const documentTitleInput = document.getElementById('document-title-input');
+            const documentUrlInput = document.getElementById('document-url-input');
+            const documentsGallery = document.getElementById('documents-gallery');
+            
+            const editDocumentModal = document.getElementById('edit-document-modal');
+            const saveEditDocumentBtn = document.getElementById('save-edit-document-btn');
+            const cancelEditDocumentBtn = document.getElementById('cancel-edit-document-btn');
+            const editDocumentTitleInput = document.getElementById('edit-document-title-input');
+            const editDocumentUrlInput = document.getElementById('edit-document-url-input');
+
+            function populateScenarioSelect() {
+                scenarioSelect.innerHTML = '';
+                let scenarioCounter = 0;
+                scenarioGroups.forEach(group => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = group.groupName;
+                    group.scenarios.forEach(scenario => {
+                        const option = document.createElement('option');
+                        option.value = scenarioCounter++;
+                        option.textContent = scenario.name;
+                        optgroup.appendChild(option);
+                    });
+                    scenarioSelect.appendChild(optgroup);
+                });
+            }
+
+            const solveBtn = document.getElementById('solve-btn');
+            const randomScenarioBtn = document.getElementById('random-scenario-btn');
+            const toggleAllBtn = document.getElementById('toggle-all-btn');
+            
+            const navFirstBtn = document.getElementById('nav-first-btn');
+            const navPrevBtn = document.getElementById('nav-prev-btn');
+            const navNextBtn = document.getElementById('nav-next-btn');
+            const navLastBtn = document.getElementById('nav-last-btn');
+
+            const importBtn = document.getElementById('import-btn');
+            const exportDbBtn = document.getElementById('export-db-btn');
+            const importFileInput = document.getElementById('import-file-input');
+            
+            // --- Tab Navigation ---
+            function switchTab(activeTabId) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelector(`.tab[data-tab="${activeTabId}"]`).classList.add('active');
+                
+                [contentMatrix, contentDocuments, contentEnvironmental].forEach(c => c.classList.add('hidden'));
+                document.getElementById(`content-${activeTabId}`).classList.remove('hidden');
+
+                if (activeTabId === 'documents') populateDocumentsTab();
+            }
+
+            tabsContainer.addEventListener('click', (e) => {
+                const tab = e.target.closest('.tab');
+                if (tab) {
+                    switchTab(tab.dataset.tab);
+                }
+            });
+
+
+            // --- UI Navigation ---
+            createScenarioBtn.addEventListener('click', () => {
+                mainContentView.classList.add('hidden');
+                scenarioCreationView.classList.remove('hidden');
+                resetCreationForm();
+            });
+
+            cancelCreationBtn.addEventListener('click', () => {
+                scenarioCreationView.classList.add('hidden');
+                mainContentView.classList.remove('hidden');
+            });
+
+            trainingModeToggle.addEventListener('change', (e) => {
+                isTrainingMode = e.target.checked;
+                const matrixContainer = document.getElementById('interactive-matrix-container');
+                if(isTrainingMode) {
+                    matrixContainer.classList.add('training-active');
+                } else {
+                    matrixContainer.classList.remove('training-active');
+                }
+                if (allScenarios.length > 0) {
+                    updateScenarioDisplay(allScenarios[scenarioSelect.value]);
+                }
+            });
+
+            scenarioSelect.addEventListener('change', () => updateScenarioDisplay(allScenarios[scenarioSelect.value]));
+            
+            randomScenarioBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                const totalScenarios = allScenarios.length;
+                const currentIndex = parseInt(scenarioSelect.value, 10);
+                let randomIndex;
+                if (totalScenarios > 1) {
+                    do {
+                        randomIndex = Math.floor(Math.random() * totalScenarios);
+                    } while (randomIndex === currentIndex);
+                } else {
+                    randomIndex = 0;
+                }
+                scenarioSelect.value = randomIndex;
+                scenarioSelect.dispatchEvent(new Event('change'));
+            });
+
+            navFirstBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                scenarioSelect.value = 0;
+                scenarioSelect.dispatchEvent(new Event('change'));
+            });
+
+            navPrevBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                let currentIndex = parseInt(scenarioSelect.value, 10);
+                if (currentIndex > 0) {
+                    scenarioSelect.value = currentIndex - 1;
+                    scenarioSelect.dispatchEvent(new Event('change'));
+                }
+            });
+
+            navNextBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                let currentIndex = parseInt(scenarioSelect.value, 10);
+                if (currentIndex < allScenarios.length - 1) {
+                    scenarioSelect.value = currentIndex + 1;
+                    scenarioSelect.dispatchEvent(new Event('change'));
+                }
+            });
+
+            navLastBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                scenarioSelect.value = allScenarios.length - 1;
+                scenarioSelect.dispatchEvent(new Event('change'));
+            });
+
+            solveBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                const scenario = allScenarios[scenarioSelect.value];
+                if (isTrainingMode) {
+                    verifyStudentSolution(scenario);
+                } else {
+                    document.querySelectorAll('#measures-container input[type="checkbox"]').forEach(checkbox => {
+                        checkbox.checked = true;
+                    });
+                    recalculateCurrentRisk(scenario);
+                }
+            });
+
+            toggleAllBtn.addEventListener('click', () => {
+                if (allScenarios.length === 0) return;
+                const checkboxes = document.querySelectorAll('#measures-container input[type="checkbox"]');
+                const shouldCheckAll = !Array.from(checkboxes).some(cb => cb.checked);
+                checkboxes.forEach(cb => cb.checked = shouldCheckAll);
+                handleMeasureChange();
+            });
+            
+            const matrixCells = document.querySelectorAll('.interactive-matrix-grid [data-prob]');
+            matrixCells.forEach(cell => {
+                cell.addEventListener('click', () => {
+                    if (!isTrainingMode || allScenarios.length === 0) return;
+                    const scenario = allScenarios[scenarioSelect.value];
+                    const measureCheckboxes = document.querySelectorAll('#measures-container input[type="checkbox"]');
+                    measureCheckboxes.forEach(checkbox => {
+                        const originalIndex = parseInt(checkbox.dataset.measureIndex, 10);
+                        const measure = scenario.measures[originalIndex];
+                        checkbox.checked = measure.isRecommended;
+                    });
+                    handleMeasureChange();
+                });
+            });
+
+            importBtn.addEventListener('click', () => importFileInput.click());
+
+            exportDbBtn.addEventListener('click', () => {
+                try {
+                    const dataToExport = {
+                        scenariosData: scenarioGroups,
+                        documentsData: customDocuments,
+                        tabOrderData: tabOrder
+                    };
+                    const dataJSON = JSON.stringify(dataToExport, null, 2);
+                    const blob = new Blob([dataJSON], { type: 'application/json;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'prl_data.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error)
+                 {
+                    console.error("Error al exportar base de datos:", error);
+                }
+            });
+            
+            importFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        if (importedData.scenariosData || importedData.documentsData) {
+                            scenarioGroups = importedData.scenariosData || [];
+                            customDocuments = importedData.documentsData || [];
+                            tabOrder = importedData.tabOrderData || ['matrix', 'documents', 'environmental'];
+                        } else if (Array.isArray(importedData)) {
+                            scenarioGroups = importedData;
+                            customDocuments = [];
+                            tabOrder = ['matrix', 'documents', 'environmental'];
+                        } else {
+                            throw new Error("El formato del archivo no es reconocido.");
+                        }
+                        
+                        applyTabOrder();
+                        allScenarios = scenarioGroups.flatMap(group => group.scenarios);
+                        populateScenarioSelect();
+                        if (allScenarios.length > 0) {
+                            scenarioSelect.value = 0;
+                            updateScenarioDisplay(allScenarios[0]);
+                        } else {
+                            clearDisplay();
+                        }
+                        updateNavButtonsState();
+                    } catch (error) {
+                        console.error("Error al importar el archivo:", error);
+                    } finally {
+                        event.target.value = null;
+                    }
+                };
+                reader.onerror = () => console.error("Error al leer el archivo.");
+                reader.readAsText(file);
+            });
+
+            // --- Scenario Editing Logic ---
+            editScenarioBtn.addEventListener('click', () => {
+                const scenario = allScenarios[scenarioSelect.value];
+                if (!scenario) return;
+                editTitleInput.value = scenario.name;
+                editDescTextarea.value = scenario.description;
+                editRefUrlInput.value = scenario.referenceUrl || '';
+                editImgUrlInput.value = scenario.imageUrl || '';
+                scenarioDisplayView.classList.add('hidden');
+                scenarioEditView.classList.remove('hidden');
+            });
+
+            cancelEditBtn.addEventListener('click', () => {
+                scenarioEditView.classList.add('hidden');
+                scenarioDisplayView.classList.remove('hidden');
+            });
+
+            saveScenarioBtn.addEventListener('click', () => {
+                const selectedIndex = parseInt(scenarioSelect.value, 10);
+                const scenarioToUpdate = allScenarios[selectedIndex];
+                if (!scenarioToUpdate) return;
+                
+                const oldName = scenarioToUpdate.name;
+                const newName = editTitleInput.value.trim();
+                scenarioToUpdate.name = newName;
+                scenarioToUpdate.description = editDescTextarea.value.trim();
+                scenarioToUpdate.referenceUrl = editRefUrlInput.value.trim();
+                scenarioToUpdate.imageUrl = editImgUrlInput.value.trim();
+
+                if (oldName !== newName) {
+                    populateScenarioSelect();
+                    const newIndex = allScenarios.findIndex(s => s === scenarioToUpdate);
+                    scenarioSelect.value = newIndex;
+                }
+                
+                updateScenarioDisplay(scenarioToUpdate);
+                scenarioEditView.classList.add('hidden');
+                scenarioDisplayView.classList.remove('hidden');
+            });
+            
+            // --- Scenario Creation Logic ---
+            addMeasureBtn.addEventListener('click', () => addMeasureInputRow());
+            creationMeasuresList.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-measure-btn')) {
+                    e.target.closest('.measure-row').remove();
+                }
+            });
+
+            saveNewScenarioBtn.addEventListener('click', () => {
+                const groupName = document.getElementById('create-group-name').value.trim();
+                const scenarioName = document.getElementById('create-scenario-name').value.trim();
+                if (!groupName || !scenarioName) {
+                    alert("El nombre del grupo y del escenario son obligatorios.");
+                    return;
+                }
+                
+                const newScenario = {
+                    name: scenarioName,
+                    description: document.getElementById('create-scenario-desc').value.trim(),
+                    initial: {
+                        prob: parseInt(document.getElementById('create-initial-prob').value, 10),
+                        sev: parseInt(document.getElementById('create-initial-sev').value, 10)
+                    },
+                    referenceUrl: document.getElementById('create-ref-url').value.trim(),
+                    imageUrl: document.getElementById('create-img-url').value.trim(),
+                    measures: []
+                };
+
+                const measureRows = document.querySelectorAll('#creation-measures-list .measure-row');
+                measureRows.forEach(row => {
+                    const measure = {
+                        text: row.querySelector('.measure-text').value.trim(),
+                        type: row.querySelector('.measure-type').value,
+                        reduction: parseFloat(row.querySelector('.measure-reduction').value) || 0,
+                        isRecommended: row.querySelector('.measure-is-recommended').checked
+                    };
+                    if (measure.text) {
+                        newScenario.measures.push(measure);
+                    }
+                });
+
+                let group = scenarioGroups.find(g => g.groupName === groupName);
+                if (!group) {
+                    group = { groupName: groupName, scenarios: [] };
+                    scenarioGroups.push(group);
+                }
+                group.scenarios.push(newScenario);
+
+                allScenarios = scenarioGroups.flatMap(g => g.scenarios);
+                populateScenarioSelect();
+                scenarioSelect.value = allScenarios.indexOf(newScenario);
+                scenarioSelect.dispatchEvent(new Event('change'));
+
+                scenarioCreationView.classList.add('hidden');
+                mainContentView.classList.remove('hidden');
+            });
+
+            function addMeasureInputRow() {
+                const row = document.createElement('div');
+                row.className = 'measure-row p-3 rounded-lg flex items-center gap-3';
+                row.style.backgroundColor = 'var(--bg-primary)';
+                row.style.border = '1px solid var(--border-color)';
+                row.innerHTML = `
+                    <div class="flex-grow">
+                        <input type="text" class="measure-text w-full text-sm" placeholder="Descripción de la medida...">
+                    </div>
+                    <div class="flex-shrink-0 w-32">
+                        <select class="measure-type text-sm">
+                            <option value="prob">Reduce Probabilidad</option>
+                            <option value="sev">Reduce Severidad</option>
+                        </select>
+                    </div>
+                    <div class="flex-shrink-0 w-24">
+                        <input type="number" class="measure-reduction text-sm" placeholder="Reducción" min="0" max="2" step="1" value="1">
+                    </div>
+                    <div class="flex-shrink-0 flex items-center gap-2" title="Marcar si es una medida recomendada (solución óptima)">
+                        <input type="checkbox" class="measure-is-recommended h-4 w-4 rounded form-checkbox">
+                        <span class="text-xs" style="color: var(--text-tertiary);">Óptima</span>
+                    </div>
+                    <button type="button" class="delete-measure-btn p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-red-500/50 transition-colors duration-200" title="Eliminar Medida">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                `;
+                creationMeasuresList.appendChild(row);
+            }
+
+            function resetCreationForm() {
+                document.getElementById('create-group-name').value = '';
+                document.getElementById('create-scenario-name').value = '';
+                document.getElementById('create-scenario-desc').value = '';
+                document.getElementById('create-initial-prob').value = '0';
+                document.getElementById('create-initial-sev').value = '0';
+                document.getElementById('create-ref-url').value = '';
+                document.getElementById('create-img-url').value = '';
+                creationMeasuresList.innerHTML = '';
+            }
+            
+             // --- Document Tab Logic ---
+            addDocumentBtn.addEventListener('click', () => {
+                addDocumentForm.classList.remove('hidden');
+                addDocumentBtn.classList.add('hidden');
+            });
+
+            cancelDocumentBtn.addEventListener('click', () => {
+                addDocumentForm.classList.add('hidden');
+                addDocumentBtn.classList.remove('hidden');
+                documentTitleInput.value = '';
+                documentUrlInput.value = '';
+            });
+
+            saveDocumentBtn.addEventListener('click', () => {
+                const title = documentTitleInput.value.trim();
+                const url = documentUrlInput.value.trim();
+                if (!title || !url) {
+                    alert('El título y la URL son obligatorios.');
+                    return;
+                }
+                try {
+                    new URL(url);
+                } catch (_) {
+                    alert('Por favor, introduce una URL válida.');
+                    return;
+                }
+                
+                customDocuments.push({ title, url });
+                populateDocumentsTab();
+                
+                documentTitleInput.value = '';
+                documentUrlInput.value = '';
+                addDocumentForm.classList.add('hidden');
+                addDocumentBtn.classList.remove('hidden');
+            });
+            
+            cancelEditDocumentBtn.addEventListener('click', () => editDocumentModal.classList.add('hidden'));
+
+            saveEditDocumentBtn.addEventListener('click', () => {
+                const title = editDocumentTitleInput.value.trim();
+                const url = editDocumentUrlInput.value.trim();
+                 if (!title || !url) {
+                    alert('El título y la URL son obligatorios.');
+                    return;
+                }
+                try {
+                    new URL(url);
+                } catch (_) {
+                    alert('Por favor, introduce una URL válida.');
+                    return;
+                }
+                customDocuments[currentlyEditingIndex].title = title;
+                customDocuments[currentlyEditingIndex].url = url;
+                populateDocumentsTab();
+                editDocumentModal.classList.add('hidden');
+                currentlyEditingIndex = -1;
+            });
+
+            documentsGallery.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-document-btn');
+                const editButton = e.target.closest('.edit-document-btn');
+                
+                if (deleteButton) {
+                    const index = parseInt(deleteButton.dataset.index, 10);
+                    customDocuments.splice(index, 1);
+                    populateDocumentsTab();
+                } else if (editButton) {
+                    const index = parseInt(editButton.dataset.index, 10);
+                    currentlyEditingIndex = index;
+                    const doc = customDocuments[index];
+                    editDocumentTitleInput.value = doc.title;
+                    editDocumentUrlInput.value = doc.url;
+                    editDocumentModal.classList.remove('hidden');
+                }
+            });
+
+
+            function clearDisplay() {
+                document.getElementById('scenario-title').textContent = "No hay escenarios cargados";
+                document.getElementById('scenario-description').textContent = "Importe o cree un escenario para comenzar.";
+                
+                const referenceLink = document.getElementById('reference-link');
+                const imageLink = document.getElementById('image-link');
+                referenceLink.classList.add('hidden');
+                imageLink.classList.add('hidden');
+                referenceLink.href = '#';
+                imageLink.href = '#';
+
+                document.getElementById('measures-container').innerHTML = '';
+                
+                const initialRiskSpan = document.getElementById('initial-risk-value');
+                const currentRiskSpan = document.getElementById('current-risk-value');
+
+                initialRiskSpan.textContent = '--';
+                initialRiskSpan.style.backgroundColor = 'transparent';
+                initialRiskSpan.style.padding = '0';
+                initialRiskSpan.style.borderRadius = '0';
+                
+                currentRiskSpan.textContent = '--';
+                currentRiskSpan.style.backgroundColor = 'transparent';
+                currentRiskSpan.style.padding = '0';
+                currentRiskSpan.style.borderRadius = '0';
+
+                document.getElementById('initial-risk-action').textContent = '--';
+                document.getElementById('initial-risk-period').textContent = '--';
+                document.getElementById('current-risk-action').textContent = '--';
+                document.getElementById('current-risk-period').textContent = '--';
+                document.querySelectorAll('.initial-risk-marker, .current-risk-marker').forEach(el => el.remove());
+                document.getElementById('risk-path-svg').innerHTML = '';
+
+                editScenarioBtn.classList.add('hidden');
+                scenarioEditView.classList.add('hidden');
+                scenarioDisplayView.classList.remove('hidden');
+            }
+
+
+            function updateScenarioDisplay(scenario) {
+                updateNavButtonsState();
+                scenarioEditView.classList.add('hidden');
+                scenarioDisplayView.classList.remove('hidden');
+                
+                if (!scenario) {
+                    clearDisplay();
+                    return;
+                }
+                editScenarioBtn.classList.remove('hidden');
+
+                document.getElementById('scenario-title').textContent = scenario.name;
+
+                const referenceLink = document.getElementById('reference-link');
+                const imageLink = document.getElementById('image-link');
+
+                if (scenario.referenceUrl && scenario.referenceUrl.trim() !== "") {
+                    referenceLink.href = scenario.referenceUrl;
+                    referenceLink.classList.remove('hidden');
+                } else {
+                    referenceLink.classList.add('hidden');
+                }
+
+                if (scenario.imageUrl && scenario.imageUrl.trim() !== "") {
+                    imageLink.href = scenario.imageUrl;
+                    imageLink.classList.remove('hidden');
+                } else {
+                    imageLink.classList.add('hidden');
+                }
+
+                document.getElementById('scenario-description').textContent = scenario.description;
+                
+                const measuresContainer = document.getElementById('measures-container');
+                measuresContainer.innerHTML = `<h4 class="font-semibold mb-3" style="color: var(--text-secondary);">Marque las medidas a implementar:</h4>`;
+                
+                const measuresToShow = isTrainingMode ? scenario.measures : scenario.measures.filter(m => m.isRecommended);
+
+                const measuresHtml = measuresToShow.map((measure) => {
+                    const fullScenario = allScenarios.find(s => s.name === scenario.name);
+                    const realOriginalIndex = fullScenario.measures.indexOf(measure);
+
+                    const typeClass = measure.type === 'prob' ? 'medida-probabilidad' : 'medida-severidad';
+                    return `
+                        <label class="flex items-center justify-between p-2 rounded-md hover:bg-gray-700/50 cursor-pointer transition-colors duration-200" style="color: var(--text-secondary);">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" data-measure-index="${realOriginalIndex}" class="form-checkbox h-4 w-4 rounded text-blue-500 border-gray-500 focus:ring-blue-500">
+                                <span class="${typeClass} text-sm">${measure.text}</span>
+                            </div>
+                            <span class="feedback-icon"></span>
+                        </label>`;
+                }).join('');
+                measuresContainer.innerHTML += `<div class="space-y-1">${measuresHtml}</div>`;
+
+                if (isTrainingMode) {
+                    solveBtn.textContent = 'Verificar Solución';
+                    solveBtn.style.backgroundColor = '#3b82f6';
+                } else {
+                    solveBtn.textContent = 'Aplicar Medidas Óptimas';
+                    solveBtn.style.backgroundColor = 'var(--button-red)';
+                }
+                clearFeedback();
+
+                measuresContainer.removeEventListener('change', handleMeasureChange);
+                measuresContainer.addEventListener('change', handleMeasureChange);
+                
+                recalculateCurrentRisk(scenario);
+            }
+
+            function handleMeasureChange() {
+                if (allScenarios.length > 0) {
+                    recalculateCurrentRisk(allScenarios[scenarioSelect.value]);
+                    if (isTrainingMode) {
+                        clearFeedback();
+                    }
+                }
+            }
+            
+            function clearFeedback() {
+                 document.querySelectorAll('.feedback-icon').forEach(icon => {
+                    icon.textContent = '';
+                    icon.className = 'feedback-icon';
+                });
+                document.getElementById('feedback-container').innerHTML = '';
+            }
+
+            function verifyStudentSolution(scenario) {
+                let correctSelections = 0;
+                let totalRecommended = 0;
+                const allMeasuresInScenario = scenario.measures;
+
+                allMeasuresInScenario.forEach((measure, originalIndex) => {
+                    if (measure.isRecommended) totalRecommended++;
+                    const checkbox = document.querySelector(`#measures-container input[data-measure-index="${originalIndex}"]`);
+                    if(checkbox) {
+                        const feedbackIcon = checkbox.closest('label').querySelector('.feedback-icon');
+                        const isChecked = checkbox.checked;
+                        
+                        if (isChecked === measure.isRecommended) {
+                            feedbackIcon.textContent = '✔️';
+                            feedbackIcon.className = 'feedback-icon feedback-correct';
+                            if (isChecked) correctSelections++;
+                        } else {
+                            feedbackIcon.textContent = '❌';
+                            feedbackIcon.className = 'feedback-icon feedback-incorrect';
+                        }
+                    }
+                });
+                
+                const feedbackContainer = document.getElementById('feedback-container');
+                const totalSelected = Array.from(document.querySelectorAll('#measures-container input[type="checkbox"]:checked')).length;
+                
+                if (correctSelections === totalRecommended && totalSelected === totalRecommended) {
+                     feedbackContainer.innerHTML = `<span class="text-green-400">¡Excelente! Has identificado todas las medidas óptimas y ninguna incorrecta.</span>`;
+                } else {
+                     feedbackContainer.innerHTML = `<span class="text-yellow-400">Hay algunas diferencias con la solución óptima. Revisa los iconos de feedback.</span>`;
+                }
+            }
+            
+            function recalculateCurrentRisk(scenario) {
+                let currentProb = scenario.initial.prob;
+                let currentSev = scenario.initial.sev;
+                
+                const selectedScenarioIndex = scenarioSelect.value;
+                if (!allScenarios[selectedScenarioIndex]) return;
+
+                document.querySelectorAll('#measures-container input[type="checkbox"]:checked').forEach(checkbox => {
+                    const measure = allScenarios[selectedScenarioIndex].measures[checkbox.dataset.measureIndex];
+                    if (measure.type === 'prob') {
+                        currentProb -= measure.reduction;
+                    } else {
+                        currentSev -= measure.reduction;
+                    }
+                });
+
+                currentProb = Math.max(0, Math.min(probLevelMap.length - 1, currentProb));
+                currentSev = Math.max(0, Math.min(sevLevelMap.length - 1, currentSev));
+                
+                const initialProbStr = probLevelMap[scenario.initial.prob];
+                const initialSevStr = sevLevelMap[scenario.initial.sev];
+                const currentProbStr = probLevelMap[currentProb];
+                const currentSevStr = sevLevelMap[currentSev];
+
+                const initialRiskValueText = riskMatrix[initialProbStr][initialSevStr];
+                const currentRiskValueText = riskMatrix[currentProbStr][currentSevStr];
+
+                const initialRiskSpan = document.getElementById('initial-risk-value');
+                const currentRiskSpan = document.getElementById('current-risk-value');
+
+                initialRiskSpan.textContent = initialRiskValueText;
+                currentRiskSpan.textContent = currentRiskValueText;
+                
+                const initialCell = document.querySelector(`[data-prob="${initialProbStr}"][data-sev="${initialSevStr}"]`);
+                const currentCell = document.querySelector(`[data-prob="${currentProbStr}"][data-sev="${currentSevStr}"]`);
+
+                if (initialCell) {
+                    const style = window.getComputedStyle(initialCell);
+                    initialRiskSpan.style.backgroundColor = style.backgroundColor;
+                    initialRiskSpan.style.color = style.color;
+                    initialRiskSpan.style.padding = '0.25rem 0.75rem';
+                    initialRiskSpan.style.borderRadius = '0.375rem';
+                }
+
+                if (currentCell) {
+                    const style = window.getComputedStyle(currentCell);
+                    currentRiskSpan.style.backgroundColor = style.backgroundColor;
+                    currentRiskSpan.style.color = style.color;
+                    currentRiskSpan.style.padding = '0.25rem 0.75rem';
+                    currentRiskSpan.style.borderRadius = '0.375rem';
+                }
+
+                const initialDetails = riskLevelDetails[initialRiskValueText];
+                if(initialDetails) {
+                    document.getElementById('initial-risk-action').textContent = initialDetails.action;
+                    document.getElementById('initial-risk-period').textContent = initialDetails.period;
+                }
+
+                const currentDetails = riskLevelDetails[currentRiskValueText];
+                if(currentDetails) {
+                    document.getElementById('current-risk-action').textContent = currentDetails.action;
+                    document.getElementById('current-risk-period').textContent = currentDetails.period;
+                }
+
+                updateMatrixMarkers(initialProbStr, initialSevStr, currentProbStr, currentSevStr);
+            }
+            
+            function updateMatrixMarkers(initProb, initSev, currProb, currSev) {
+                 document.querySelectorAll('.initial-risk-marker, .current-risk-marker').forEach(el => el.remove());
+                 const initialCell = document.querySelector(`[data-prob="${initProb}"][data-sev="${initSev}"]`);
+                 const currentCell = document.querySelector(`[data-prob="${currProb}"][data-sev="${currSev}"]`);
+                 
+                 const initialMarker = document.createElement('div');
+                 initialMarker.className = 'initial-risk-marker';
+                 initialMarker.textContent = 'INICIAL';
+                 initialCell.appendChild(initialMarker);
+
+                 const currentMarker = document.createElement('div');
+                 currentMarker.className = 'current-risk-marker';
+                 currentMarker.textContent = 'ACTUAL';
+
+                 if (initialCell !== currentCell) {
+                    currentCell.appendChild(currentMarker);
+                 } else {
+                    initialMarker.textContent = 'INICIAL/ACTUAL';
+                 }
+
+                 drawArrow(initialCell, currentCell);
+            }
+            
+            function updateNavButtonsState() {
+                const navButtons = [navFirstBtn, navPrevBtn, navNextBtn, navLastBtn];
+                if (allScenarios.length <= 1) {
+                    navButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    });
+                    return;
+                }
+
+                const currentIndex = parseInt(scenarioSelect.value, 10);
+                const lastIndex = allScenarios.length - 1;
+
+                navButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+
+                if (currentIndex === 0) {
+                    navFirstBtn.disabled = true;
+                    navPrevBtn.disabled = true;
+                    navFirstBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    navPrevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                if (currentIndex === lastIndex) {
+                    navNextBtn.disabled = true;
+                    navLastBtn.disabled = true;
+                    navNextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    navLastBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }
+
+            function drawArrow(startCell, endCell) {
+                const svg = document.getElementById('risk-path-svg');
+                const container = document.getElementById('interactive-matrix-container');
+
+                if (startCell === endCell) {
+                    svg.innerHTML = ''; 
+                    return;
+                }
+
+                const cRect = container.getBoundingClientRect();
+                const sRect = startCell.getBoundingClientRect();
+                const eRect = endCell.getBoundingClientRect();
+                const startX = sRect.left + sRect.width / 2 - cRect.left;
+                const startY = sRect.top + sRect.height / 2 - cRect.top;
+                const endX = eRect.left + eRect.width / 2 - cRect.left;
+                const endY = eRect.top + eRect.height / 2 - cRect.top;
+                
+                svg.innerHTML = `
+                    <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="var(--link-color)" /></marker></defs>
+                    <line x1="${startX}" y1="${startY}" x2="${endX}" y2="${endY}" stroke="var(--link-color)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrowhead)" />`;
+            }
+
+            function populateDocumentsTab() {
+                const gallery = document.getElementById('documents-gallery');
+                gallery.innerHTML = ''; 
+
+                if (customDocuments.length === 0) {
+                    gallery.innerHTML = `<p class="col-span-full text-center py-8" style="color: var(--text-tertiary);">No hay documentos para mostrar. Haga clic en "Añadir Hipervínculo" para empezar.</p>`;
+                    return;
+                }
+
+                customDocuments.forEach((doc, index) => {
+                    const docElement = document.createElement('div');
+                    docElement.className = 'rounded-lg flex items-center gap-4 group p-4';
+                    docElement.style.backgroundColor = 'var(--bg-primary)';
+                    docElement.innerHTML = `
+                        <div class="drag-handle p-2 text-gray-500 cursor-move">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
+                        </div>
+                        <div class="flex-shrink-0 p-3 rounded-full" style="background-color: rgba(59, 130, 246, 0.1);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--link-color);"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        </div>
+                        <div class="flex-grow overflow-hidden">
+                             <a href="${doc.url}" target="_blank" rel="noopener noreferrer" class="font-medium group-hover:underline truncate block" style="color: var(--text-primary);">${doc.title}</a>
+                             <p class="text-xs truncate" style="color: var(--text-tertiary);">${doc.url}</p>
+                        </div>
+                        <button class="edit-document-btn p-2 rounded-full text-gray-400 hover:text-white hover:bg-blue-500/50 transition-colors" data-index="${index}"><svg class="pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                        <button class="delete-document-btn p-2 rounded-full text-gray-400 hover:text-white hover:bg-red-500/50 transition-colors" data-index="${index}"><svg class="pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                    `;
+                    gallery.appendChild(docElement);
+                });
+            }
+            
+            function applyTabOrder() {
+                tabOrder.forEach(tabId => {
+                    const tabElement = document.querySelector(`.tab[data-tab="${tabId}"]`);
+                    if(tabElement) tabsContainer.appendChild(tabElement);
+                });
+            }
+
+            function loadInitialData() {
+                const initialData = {
+                  "scenariosData": [
+                    {
+                      "groupName": "Riesgos Comunes / Transversales",
+                      "scenarios": [
+                        {
+                          "name": "Caída a distinto nivel desde escalera",
+                          "description": "Un operario cae de una escalera de mano mientras realiza una instalación.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Revisar y asegurar la escalera antes de usar.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Utilizar arnés de seguridad anclado a un punto fijo.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Mantener siempre tres puntos de apoyo en la escalera.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Utilizar una escalera más corta y estirarse para llegar.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Apoyar la escalera contra una superficie inestable.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=5RxAOuLrDfY",
+                          "imageUrl": "https://www.carlin.es/resources/img/products/76022g.jpg"
+                        },
+                        {
+                          "name": "Caída al mismo nivel por tropiezo",
+                          "description": "Un trabajador tropieza con herramientas o materiales dejados en una zona de paso.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 0
+                          },
+                          "measures": [
+                            {
+                              "text": "Mantener siempre el orden y la limpieza en zonas de paso.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de calzado de seguridad antideslizante.",
+                              "type": "sev",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Marcar y delimitar claramente las zonas de paso.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar una buena iluminación en zonas de trabajo.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Correr por los pasillos para terminar antes la tarea.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=zkDQkfh7WFQ",
+                          "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDDHz3izdtqmoxzNeTvhIK9ZbzWhPxjfNm7w&s"
+                        },
+                        {
+                          "name": "Caída de objetos desde altura",
+                          "description": "Una herramienta cae desde un andamio golpeando a alguien abajo.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Instalar rodapiés en los andamios.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso obligatorio de casco en la zona inferior.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Amarrar las herramientas al cinturón o estructura.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Señalizar la zona con una simple cinta de balizar.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Trabajar con los bolsillos llenos de herramientas pequeñas.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=7G6OesAvrLs",
+                          "imageUrl": "https://www.prevenwork.com/1879-large_default/senal-de-atencion-posible-caida-de-objetos.jpg"
+                        },
+                        {
+                          "name": "Corte con herramienta manual (cúter)",
+                          "description": "Corte profundo en una mano al fallar la cuchilla de un cúter.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 0
+                          },
+                          "measures": [
+                            {
+                              "text": "Utilizar cúters con hoja retráctil automática.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de guantes de seguridad con protección anticorte.",
+                              "type": "sev",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Cortar siempre en dirección contraria al cuerpo.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Utilizar una cuchilla desgastada para no cortar tan rápido.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Sujetar la pieza a cortar sobre la pierna.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/2nt6i4i9WDE",
+                          "imageUrl": "https://verduonlinestore.com/7649930-large_default/senal-396-adhesiva-105x74rcorte-manos-riesgo-de-corte-atencion-a-las-manos.jpg"
+                        },
+                        {
+                          "name": "Golpe contra objeto inmóvil",
+                          "description": "Un trabajador se golpea la cabeza contra una estantería baja en una zona de paso.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 0
+                          },
+                          "measures": [
+                            {
+                              "text": "Señalizar salientes y zonas de baja altura.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de casco en zonas de almacén.",
+                              "type": "sev",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Mantener una buena iluminación.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Reorganizar el almacén para mejorar los pasillos.",
+                              "type": "prob",
+                              "reduction": 2,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Caminar mirando el teléfono móvil.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=7KieAWYQt4g",
+                          "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPrtsNdP_bsNM0yjoZ5NzMw9WUQpOHk1mM8w&s"
+                        },
+                        {
+                          "name": "Atrapamiento por maquinaria",
+                          "description": "La mano de un operario es atrapada por los rodillos de una máquina sin protección.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Instalar resguardos fijos en las partes móviles.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Parada de emergencia al alcance del operario.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Formación específica sobre los riesgos de la máquina.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Usar guantes anchos para mayor protección.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Eliminar las protecciones para trabajar más rápido.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=P7i4Mfj8nSQ",
+                          "imageUrl": "https://www.sepiprodiser.com/2485-large_default/atencion-riesgo-de-atrapamiento-a4.jpg"
+                        },
+                        {
+                          "name": "Quemadura térmica por contacto",
+                          "description": "Quemadura al tocar una superficie caliente sin aislar, como una tubería de vapor.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Aislar térmicamente todas las superficies calientes.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de guantes de protección térmica.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Señalizar las superficies calientes.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Enfriar la tubería con agua antes de tocarla.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Confiar en que ya se habrá enfriado.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/518hig8oZLo",
+                          "imageUrl": "https://preventecsl.es/wp-content/uploads/2011/06/senales-para-prevenir-riesgos-A32.webp"
+                        },
+                        {
+                          "name": "Quemadura química por salpicadura",
+                          "description": "Salpicadura de un producto corrosivo en los ojos al trasvasar líquido sin protección.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Uso de gafas de seguridad y pantalla facial.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar fuentes lavaojos de emergencia.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Trasvasar productos químicos lentamente y con embudo.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Usar gafas de sol para protegerse.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Trabajar con ventilación general en lugar de extracción localizada.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://upload.wikimedia.org/wikipedia/commons/0/09/Sodium_hydroxide_burn.png",
+                          "imageUrl": "https://thumbs.dreamstime.com/z/se%C3%B1al-qu%C3%ADmica-del-vector-riesgo-de-quemaduras-peligro-quemadura-aislada-en-el-fondo-blanco-201765492.jpg"
+                        },
+                        {
+                          "name": "Electrocución por contacto directo",
+                          "description": "Contacto con un cable activo en un cuadro eléctrico.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Trabajar siempre sin tensión (consignación).",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de guantes dieléctricos y herramientas aisladas.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Verificar ausencia de tensión antes de iniciar.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Utilizar calzado de seguridad con suela de goma.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Confiar en que el compañero ha cortado la corriente.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=H4PqWjFqnvo",
+                          "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7F9mSmEHyFrJHGEO4DXdDaUevnGzBeMB2gA&s"
+                        },
+                        {
+                          "name": "Electrocución por contacto indirecto",
+                          "description": "Un equipo con carcasa metálica deriva corriente por un fallo de aislamiento interno.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Asegurar la correcta puesta a tierra de los equipos.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar diferenciales de alta sensibilidad (30mA).",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Realizar revisiones periódicas de la instalación eléctrica.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Enchufar el equipo en una toma sin toma de tierra.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Ignorar pequeños calambres al tocar el equipo.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=NbB7pvkZHBY",
+                          "imageUrl": "https://revistachilenadeanestesia.cl/wp-content/uploads/2019/05/art05.xml_image2.jpeg"
+                        },
+                        {
+                          "name": "Sobreesfuerzo por manejo de cargas",
+                          "description": "Lesión de espalda al levantar una caja pesada.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Utilizar medios mecánicos (carretillas, transpaletas).",
+                              "type": "prob",
+                              "reduction": 2,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Formación en manipulación manual de cargas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Levantar la carga solo con la fuerza de la espalda.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Reducir el peso de las cargas si es posible.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Pedir ayuda a un compañero.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=v-EItJRili0",
+                          "imageUrl": "https://www.carteling.com/7927-large_default/riesgo-de-sobreesfuerzos.jpg"
+                        },
+                        {
+                          "name": "Exposición a ruido",
+                          "description": "Pérdida auditiva por trabajar junto a un compresor ruidoso sin protección.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Uso de protectores auditivos (cascos o tapones).",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Encapsular o aislar la fuente de ruido.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Alejar la fuente de ruido de los puestos de trabajo.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Realizar mediciones de ruido periódicas.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Escuchar música con auriculares para no oír el compresor.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=eFZHqg1IVqc",
+                          "imageUrl": "https://www.carlin.es/resources/img/products/76033g.jpg"
+                        },
+                        {
+                          "name": "Inhalación de vapores tóxicos",
+                          "description": "Mareo y cefalea por inhalar vapores de disolventes en un espacio cerrado sin ventilación.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Instalar sistema de extracción localizada.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de mascarilla con filtro para vapores orgánicos.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar una buena ventilación natural.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Sustituir el producto por uno menos tóxico si es posible.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Contener la respiración durante la aplicación.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=bGFjWJb8Sz8",
+                          "imageUrl": "https://sserial.es/wp-content/uploads/2018/05/p_1_6_6_166-Peligro-sustancias-toxicas.jpg"
+                        },
+                        {
+                          "name": "Atropello por carretilla elevadora",
+                          "description": "Atropello de un trabajador en un cruce sin visibilidad en un almacén.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Pintar pasillos separados para peatones y vehículos.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar espejos en cruces y señales luminosas/acústicas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Equipar las carretillas con avisadores de marcha atrás.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Prohibir el uso de teléfonos móviles al caminar por el almacén.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Los peatones siempre tienen preferencia, no necesitan mirar.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=LKJdc2E2Gu8",
+                          "imageUrl": "https://www.senyals.com/6962-large_default/senal-atencion-paso-de-carretilla.jpg"
+                        },
+                        {
+                          "name": "Incendio por cortocircuito",
+                          "description": "Fuego en un cuadro eléctrico por sobrecarga o mal contacto.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Mantenimiento preventivo (termografía, reapriete).",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "No sobrecargar las líneas eléctricas ni usar ladrones.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar detectores de humo y extintores adecuados.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Mantener el cuadro eléctrico limpio y despejado de materiales combustibles.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Puentear un fusible o automático que salta a menudo.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=NitCdH9Br2c",
+                          "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTlGgCJADOpYuI7ecqhL-MqIOaFyeefFw4Fqw&s"
+                        },
+                        {
+                          "name": "Proyección de partículas a los ojos",
+                          "description": "Una partícula metálica entra en el ojo al usar una amoladora.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Uso obligatorio de gafas de seguridad.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar pantallas de protección en la máquina.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Verificar que el disco de la amoladora es el adecuado.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Usar la máquina sin la guarda de protección para mejor visibilidad.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Soplar para quitar las partículas de la zona de trabajo.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=PvmkB7Ael5M",
+                          "imageUrl": "https://ahbonline.es/13039-large_default/precaucion-proyeccion-de-particulas.jpg"
+                        },
+                        {
+                          "name": "Estrés térmico por calor",
+                          "description": "Un trabajador sufre un golpe de calor realizando trabajos a la intemperie en verano.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Planificar descansos frecuentes y proveer agua fresca.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Habilitar zonas de sombra para los descansos.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Adaptar los horarios de trabajo, evitando las horas de más calor.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Usar ropa de trabajo ligera y transpirable.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Beber bebidas azucaradas en lugar de agua.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/N8IXXW2tzXU",
+                          "imageUrl": "https://istas.net/recursos/IMG/ISTAS_04051.jpg"
+                        },
+                        {
+                          "name": "Contacto con agente biológico",
+                          "description": "Pinchazo con una aguja contaminada al desecharla incorrectamente en un entorno sanitario o de limpieza.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Uso de contenedores de seguridad para objetos punzantes.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de guantes de protección adecuados.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "No reencapsular las agujas bajo ningún concepto.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Vacunación (Hepatitis B, Tétanos).",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Tirar las agujas a la papelera común si el contenedor está lleno.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=pfUewcMr9Bs",
+                          "imageUrl": "https://preventecsl.es/wp-content/uploads/2010/09/senalizacion-de-riesgo-biologico-A09.webp"
+                        },
+                        {
+                          "name": "Explosión por atmósfera inflamable",
+                          "description": "Una chispa de un equipo eléctrico no certificado provoca una explosión en una zona con vapores inflamables (ATEX).",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Utilizar equipos certificados ATEX para la zona clasificada.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar ventilación forzada para evitar la acumulación de vapores.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Realizar mediciones de explosividad antes de iniciar trabajos en caliente.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Prohibir fumar e introducir mecheros o móviles no ATEX en la zona.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Confiar en el olfato para detectar la presencia de vapores.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=nx1OWFlJ9z0",
+                          "imageUrl": "https://crisanlaboral.es/wp-content/uploads/2024/02/ISO-A69PN-400x480.jpg"
+                        },
+                        {
+                          "name": "Trastorno musculoesquelético (TME)",
+                          "description": "Aparición de tendinitis en la muñeca por movimientos repetitivos en una línea de montaje.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Introducir pausas activas y rotación de puestos de trabajo.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Mejorar la ergonomía del puesto (altura de la mesa, herramientas, etc.).",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Formación en higiene postural y movimientos correctos.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Fomentar el ejercicio físico fuera del trabajo.",
+                              "type": "sev",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Tomar antiinflamatorios antes de empezar a trabajar para no sentir dolor.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/zOl1FRVjgao",
+                          "imageUrl": "https://ctmarmol.es/wp-content/uploads/2019/05/ADVERTENCIA_VPT_0726-1508151605.jpeg"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "Inst. Frigoríficas y de Climatización (IFC)",
+                      "scenarios": [
+                        {
+                          "name": "Fuga de gas refrigerante en espacio confinado",
+                          "description": "Un técnico sufre asfixia por una fuga masiva de R-410A mientras repara una unidad interior en una sala de máquinas sin ventilación.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Utilizar detector de fugas electrónico antes de intervenir.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar ventilación forzada en el espacio de trabajo.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Realizar una prueba de estanqueidad con nitrógeno tras la reparación.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Llevar mascarilla quirúrgica para evitar oler el gas.",
+                              "type": "sev",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Tener a mano un extintor de CO2 por si hay un incendio.",
+                              "type": "sev",
+                              "reduction": 0,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=U-f63H7eDKk",
+                          "imageUrl": "https://serior-10c75.kxcdn.com/wp-content/uploads/2018/12/AD-2295.png"
+                        },
+                        {
+                          "name": "Quemadura por contacto con refrigerante líquido",
+                          "description": "Un operario sufre quemaduras por frío al soltarse una manguera del manómetro y recibir un chorro de R-134a líquido en la mano.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Uso de guantes criogénicos y gafas de seguridad.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar la correcta conexión de las mangueras.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "No trabajar con presiones superiores a las recomendadas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Comprobar la estanqueidad con agua y jabón.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Usar mangueras viejas o agrietadas.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/QaMpEkIHKkM",
+                          "imageUrl": "https://www.sekureco.eu/6783-home_default/senal-atencion-piezas-con-baja-temperatura-con-tintas-uv-sekureco-skrc.jpg"
+                        },
+                        {
+                          "name": "Cortes manipulando chapa de conductos",
+                          "description": "Un operario sufre un corte profundo en el antebrazo al manipular los bordes afilados de una chapa de conducto de aire.",
+                          "initial": {
+                            "prob": 2,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Uso de guantes de protección mecánica con alto nivel anticorte.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de manguitos de protección anticorte en los antebrazos.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Eliminar las rebabas y bordes afilados de las chapas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Formación en manipulación segura de chapas metálicas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Trabajar con ropa de manga corta para mayor comodidad.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/sFELFFvbm90",
+                          "imageUrl": "https://cdn-01-artemis.media-brady.com/Assets/ImageRoot/DMEU_WebPipeline/9_/11/DMEU_Y1280869_11_std.lang.all.gif"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "Inst. de Producción de Calor (IPC)",
+                      "scenarios": [
+                        {
+                          "name": "Intoxicación por CO de una caldera en mal estado",
+                          "description": "Una familia sufre una intoxicación por monóxido de carbono debido a la mala combustión de una caldera de gas no revisada.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Realizar el mantenimiento anual obligatorio por un técnico cualificado.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar que las rejillas de ventilación no estén obstruidas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar un detector de monóxido de carbono (CO) con alarma.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Verificar que el color de la llama sea azul y no amarillo-naranja.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Tapar las rejillas de ventilación en invierno para que no entre frío.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=WWDQMOxrHNE",
+                          "imageUrl": "https://syssa.com/40656-large_default/senal-de-riesgo-de-intoxicacion-gases-toxicos-referencia-2021.jpg"
+                        },
+                        {
+                          "name": "Explosión de caldera de gas",
+                          "description": "Una acumulación de gas en la cámara de combustión provoca una explosión al intentar encender una caldera con mantenimiento deficiente.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Realizar el mantenimiento anual obligatorio.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar un detector de gas natural/propano con alarma.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Verificar la correcta evacuación de humos.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Si huele a gas, ventilar y llamar al servicio técnico, no accionar interruptores.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Reiniciar la caldera repetidamente si no enciende a la primera.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=4yopsmsH9Dk",
+                          "imageUrl": "https://www.bransistemas.com/storage/2024/04/ad-127A.jpg"
+                        },
+                        {
+                          "name": "Quemadura térmica por contacto con tubería",
+                          "description": "Quemadura al tocar una tubería de agua caliente de un circuito de calefacción sin aislar.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Aislar térmicamente todas las superficies calientes accesibles.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de guantes de protección térmica durante la manipulación.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Señalizar las superficies calientes con pictogramas.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Avisar verbalmente de que 'quema'.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Confiar en que ya se habrá enfriado el circuito.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=wKU30DGmNzA",
+                          "imageUrl": "https://www.cartelesdeseguridad.com.ar/images/000000000000000024147AT3020.jpg"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "Gestión y Tratamiento de Agua (RETA / SGA)",
+                      "scenarios": [
+                        {
+                          "name": "Asfixia en espacio confinado (arqueta)",
+                          "description": "Un operario pierde el conocimiento al entrar en una arqueta de saneamiento por falta de oxígeno y presencia de ácido sulfhídrico (H2S).",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Medir la atmósfera (O2, H2S, CO, LEL) antes y durante los trabajos.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Ventilación forzada del espacio confinado.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de equipo de respiración autónoma (ERA) si no se garantiza atmósfera segura.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Contar con un recurso preventivo ('vigía') en el exterior.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Entrar rápidamente para estar menos tiempo expuesto.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=_3JTW-AJniM",
+                          "imageUrl": "https://ebersign.com/wp-content/uploads/2023/09/A69-ISO_espacio-confinado-riesgo-de-asfixia_A4.jpg"
+                        },
+                        {
+                          "name": "Intoxicación por fuga de cloro gas",
+                          "description": "Una fuga en la botella de cloro de una ETAP (Estación de Tratamiento de Agua Potable) provoca una nube tóxica.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Disponer de detectores de cloro con alarma en la sala.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Tener máscaras de gas con filtro específico y equipos de respiración autónoma.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Disponer de un plan de emergencia y realizar simulacros.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Mantenimiento preventivo de válvulas y conducciones.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Intentar tapar la fuga con un trapo húmedo.",
+                              "type": "sev",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=e6J45Rq9eJY",
+                          "imageUrl": "https://syssa.com/40656-large_default/senal-de-riesgo-de-intoxicacion-gases-toxicos-referencia-2021.jpg"
+                        },
+                        {
+                          "name": "Caída a un tanque o depósito",
+                          "description": "Un técnico de mantenimiento cae a un decantador en una EDAR (Estación Depuradora de Aguas Residuales) al resbalar en el borde.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Instalar barandillas perimetrales reglamentarias en todos los depósitos.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de arnés de seguridad con línea de vida en zonas expuestas.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Mantener los pasillos y bordes limpios de grasas y lodos.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Disponer de aros salvavidas y pértigas de rescate.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Saltar por encima de las tuberías para atajar.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=XvVHJp5ebl4",
+                          "imageUrl": "https://www.carlin.es/resources/img/products/76022g.jpg"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "Inst. Térmicas y de Fluidos (Sup. DPI / MIT)",
+                      "scenarios": [
+                        {
+                          "name": "Exposición a legionela en torre de refrigeración",
+                          "description": "Brote de legionelosis en un hospital por falta de mantenimiento en la torre de refrigeración del edificio.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Realizar el mantenimiento y limpieza según normativa (RD 487/2022).",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Llevar un registro detallado de todas las operaciones de mantenimiento.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Realizar análisis periódicos del agua por un laboratorio acreditado.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Dosificar de forma continua un biocida adecuado en el circuito.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Añadir cloro de piscina al agua de forma ocasional.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=hoaPx0qJvo4",
+                          "imageUrl": "https://es.sinalux.eu/fotos/produtos/g_e1148.jpg"
+                        },
+                        {
+                          "name": "Caída instalando conductos de aire en altura",
+                          "description": "Un instalador se precipita desde un andamio inestable mientras manipula un conducto de ventilación pesado en un falso techo.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Utilizar una plataforma elevadora móvil en lugar de andamio.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Verificar el correcto montaje y estabilidad del andamio.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Utilizar arnés de seguridad anclado a un punto fijo.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Asegurar los conductos con cuerdas o eslingas antes de elevarlos.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Intentar lanzar los tramos de conducto al compañero desde el suelo.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=cfj3KxPz7bc",
+                          "imageUrl": "https://crisanlaboral.es/wp-content/uploads/2024/02/ISO-A16PN-447x450.jpg"
+                        },
+                        {
+                          "name": "Rotura de tubería de amoniaco (NH3)",
+                          "description": "En una instalación frigorífica industrial, la rotura de una tubería de amoniaco provoca una fuga tóxica y corrosiva.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Realizar inspecciones periódicas de la instalación (radiografiado de soldaduras).",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Instalar detectores de amoniaco con alarmas visuales y sonoras.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Disponer de equipos de protección individual (EPIs) de nivel A o B.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Tener un plan de evacuación y duchas de emergencia.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Creer que por su olor característico se detectará a tiempo.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=ythp7gTATl0",
+                          "imageUrl": "https://serior-10c75.kxcdn.com/wp-content/uploads/2018/12/AD-2050.png"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "Efic. Energética y E. Solar Térmica (EEE)",
+                      "scenarios": [
+                        {
+                          "name": "Quemadura por fluido caloportador solar",
+                          "description": "Un operario sufre una quemadura al desconectar un racor en un campo de captadores solares térmicos en pleno funcionamiento.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 1
+                          },
+                          "measures": [
+                            {
+                              "text": "Despresurizar y enfriar el circuito antes de cualquier intervención.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Cubrir los captadores para evitar que sigan calentando el fluido.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Utilizar guantes de protección térmica y gafas de seguridad.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Purgar el aire del circuito antes de la puesta en marcha.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Aflojar rápidamente la conexión para salir antes del apuro.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=zBjVhwI5G68",
+                          "imageUrl": "https://cdn-01-artemis.media-brady.com/Assets/ImageRoot/DMEU_WebPipeline/8_/11/DMEU_Y1280828_11_std.lang.all.gif"
+                        },
+                        {
+                          "name": "Caída desde cubierta instalando paneles",
+                          "description": "Un técnico cae desde el tejado de una vivienda mientras instala captadores solares térmicos.",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Instalar líneas de vida provisionales en la cubierta.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de arnés de seguridad anclado a la línea de vida.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Delimitar la zona de trabajo y acotar la zona de caída abajo.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Subir los paneles al tejado sin medios mecánicos, a pulso.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "No instalar si hay viento fuerte, lluvia o nieve.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=bgQ5b_ZWSmM",
+                          "imageUrl": "https://ebersign.com/wp-content/uploads/2023/09/A26-ISO_peligro-caida-a-distinto-nivel_A4.jpg"
+                        }
+                      ]
+                    },
+                    {
+                      "groupName": "Energías Renovables (ER)",
+                      "scenarios": [
+                        {
+                          "name": "Arco eléctrico en instalación fotovoltaica",
+                          "description": "Se produce un arco eléctrico al conectar o desconectar un string de paneles fotovoltaicos en carga (en un día soleado).",
+                          "initial": {
+                            "prob": 1,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Utilizar seccionadores de corte en DC diseñados para tal fin.",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Realizar las conexiones en horas de baja o nula irradiación (amanecer, anochecer).",
+                              "type": "prob",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de EPIs para riesgo eléctrico (guantes dieléctricos, pantalla facial, ropa ignífuga).",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Verificar la tensión de circuito abierto (Voc) antes de conectar.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": false
+                            },
+                            {
+                              "text": "Cortocircuitar los terminales para descargar los paneles.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/shorts/XXeUUzodiUQ",
+                          "imageUrl": "https://cdn-01-artemis.media-brady.com/Assets/ImageRoot/DMEU_WebPipeline/5~/01/DMEU_Y4673045~01_std.lang.all.gif"
+                        },
+                        {
+                          "name": "Caída desde aerogenerador",
+                          "description": "Un técnico de mantenimiento eólico cae desde la góndola de un aerogenerador durante una operación de rescate.",
+                          "initial": {
+                            "prob": 0,
+                            "sev": 2
+                          },
+                          "measures": [
+                            {
+                              "text": "Formación específica en rescate y trabajos en altura.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Uso de doble sistema de anclaje (arnés con dos cabos).",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Revisión exhaustiva de los equipos de protección contra caídas.",
+                              "type": "prob",
+                              "reduction": 0,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Disponer de un plan de rescate ensayado y conocido.",
+                              "type": "sev",
+                              "reduction": 1,
+                              "isRecommended": true
+                            },
+                            {
+                              "text": "Improvisar un sistema de poleas con las cuerdas disponibles.",
+                              "type": "prob",
+                              "reduction": -1,
+                              "isRecommended": false
+                            }
+                          ],
+                          "referenceUrl": "https://www.youtube.com/watch?v=Rhpn9tBq9Gw",
+                          "imageUrl": "https://es.sinalux.eu/fotos/produtos/g_e2250.jpg"
+                        }
+                      ]
+                    }
+                  ],
+                  "documentsData": [
+                    {
+                      "title": "PDF_Catalogo de PRL. Señalización",
+                      "url": "https://www.sscovadonga.com/assets/pdf/CATALOGO%20COVADONGA%20SE%C3%91ALES%20DE%20SEGURIDAD%202018%20versionweb.pdf"
+                    },
+                    {
+                      "title": "PDF_Catalogo de EPI",
+                      "url": "https://a3epis.com/catalogo-pdf/"
+                    },
+                    {
+                      "title": "VID_Atraganamineto estando solos",
+                      "url": "https://www.youtube.com/watch?v=ubA596XWuiY"
+                    },
+                    {
+                      "title": "VID_1. Primeros Auxilios: Conducta PAS y valoración inicial de una persona accidentada",
+                      "url": "https://www.youtube.com/watch?v=fUh1k5SmlxM"
+                    },
+                    {
+                      "title": "VID_2. Primeros Auxilios: RCP (Reanimación cardiopulmonar) en adultos",
+                      "url": "https://www.youtube.com/watch?v=FEayzgNGGBQ"
+                    },
+                    {
+                      "title": "VID_3. Primeros Auxilios: Posición Lateral de Seguridad",
+                      "url": "https://www.youtube.com/watch?v=cLA-g8mWal4"
+                    },
+                    {
+                      "title": "VID_4. Primeros Auxilios: RCP (Reanimación cardiopulmonar) en bebés y niños",
+                      "url": "https://www.youtube.com/watch?v=TV3lnITz_Mk"
+                    },
+                    {
+                      "title": "VID_5. Primeros Auxilios: Desfibrilador externo semiautomático (DESA) (DEA)",
+                      "url": "https://www.youtube.com/watch?v=pFUlTeutnpQ"
+                    },
+                    {
+                      "title": "VID_6. Primeros Auxilios: ¿Cómo usar el Desfibrilador Externo Semiautomático (DESA o DEA)?",
+                      "url": "https://www.youtube.com/watch?v=ExXA1CPOYSc"
+                    },
+                    {
+                      "title": "VID_Maniobra de Heimlich (atragantamiento)",
+                      "url": "https://www.youtube.com/watch?v=zxeLPrDMHwc&t=2s"
+                    },
+                    {
+                      "title": "VID_Primeros Auxilios: Hemorragias",
+                      "url": "https://www.youtube.com/watch?v=IfSZl6izsFk"
+                    },
+                    {
+                      "title": "VID_Primeros Auxilios – No movilizar a una persona accidentada",
+                      "url": "https://www.youtube.com/watch?v=gZs3iuAtqbY"
+                    }
+                  ],
+                  "environmentalDocumentsData": [
+                    {
+                      "title": "Un paso simple pero de gran impacto, la regeneración de gases refrigerantes",
+                      "url": "https://www.youtube.com/watch?v=uNt4InFM1wE"
+                    }
+                  ],
+                  "tabOrderData": [
+                    "matrix",
+                    "documents",
+                    "epis",
+                    "environmental"
+                  ]
+                };
+
+                scenarioGroups = initialData.scenariosData || [];
+                customDocuments = initialData.documentsData || [];
+                
+                // Filtrar tabOrder para utilizar solamente las pestañas existentes en el HTML
+                const validTabs = ['matrix', 'documents', 'environmental'];
+                tabOrder = (initialData.tabOrderData || []).filter(id => validTabs.includes(id));
+                if (tabOrder.length === 0) tabOrder = validTabs;
+
+                applyTabOrder();
+                
+                allScenarios = scenarioGroups.flatMap(group => group.scenarios);
+                populateScenarioSelect();
+                populateDocumentsTab();
+                
+                if (allScenarios.length > 0) {
+                    scenarioSelect.value = 0;
+                    updateScenarioDisplay(allScenarios[0]);
+                } else {
+                    clearDisplay();
+                }
+                updateNavButtonsState();
+            }
+            
+            loadInitialData();
+            
+            // --- SortableJS Initialization ---
+            new Sortable(tabsContainer, {
+                animation: 150,
+                onEnd: (evt) => {
+                    const movedTab = tabOrder.splice(evt.oldIndex, 1)[0];
+                    tabOrder.splice(evt.newIndex, 0, movedTab);
+                }
+            });
+
+            new Sortable(documentsGallery, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: (evt) => {
+                    const movedItem = customDocuments.splice(evt.oldIndex, 1)[0];
+                    customDocuments.splice(evt.newIndex, 0, movedItem);
+                    populateDocumentsTab();
+                },
+            });
+        });
+    </script>
+</body>
+</html>
